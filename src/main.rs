@@ -1,5 +1,5 @@
 mod vec3;
-use vec3::{RGBColour, Ray, Vec3};
+use vec3::{RGBColour, Ray, Sphere, Vec3};
 
 use std::io::Write;
 
@@ -38,7 +38,7 @@ fn main() {
                 origin,
                 lower_left_corner + u * horizontal + v * vertical - origin,
             );
-            let pixel_colour = r.colour();
+            let pixel_colour = r.colour(Box::new(Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5)));
             let pixel_colour = RGBColour::from(pixel_colour);
 
             println!("{}", pixel_colour);

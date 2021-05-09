@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    ops::{Add, Div, Index, Mul, Sub},
+    ops::{Add, Div, Index, Mul, Neg, Sub},
 };
 
 type Colour = Vec3;
@@ -96,6 +96,14 @@ impl Index<usize> for Vec3 {
         &self.e[index]
     }
 }
+impl Neg for Vec3 {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self {
+            e: [-self.e[0], -self.e[1], -self.e[2]],
+        }
+    }
+}
 
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
@@ -157,41 +165,64 @@ impl Ray {
     pub fn at(self, t: f64) -> Point {
         self.origin + t * self.direction
     }
-    pub fn colour(self) -> Colour {
-        if let Some(t) = Self::hit_sphere(Point::new(0.0, 0.0, -1.0), 0.5, self) {
-            let N = (self.at(t) - Vec3::new(0.0, 0.0, -1.0)).unit();
-            return 0.5 * Colour::new(N[0] + 1.0, N[1] + 1.0, N[2] + 1.0);
+    pub fn colour(self, world: Box<dyn Hittable>) -> Colour {
+        if let Some(rec) = world.hit(self, 0.0, f64::INFINITY) {
+            return 0.5*(match rec.normal {
+                Normal::FrontfaceNormal(normal) => normal,
+                Normal::BackfaceNormal(normal) => normal,
+            } + Colour::new(1.0, 1.0, 1.0))
         }
         let t = 0.5 * (self.direction.unit().e[1] + 1.0);
         (1.0 - t) * Colour::new(0.0, 0.0, 0.0) + t * Colour::new(0.0, 0.2, 1.0)
     }
-    fn hit_sphere(centre: Point, radius: f64, r: Self) -> Option<f64> {
-        let oc = r.origin - centre;
+    // fn hit_sphere(centre: Point, radius: f64, r: Self) -> Option<f64> {
+    //     let oc = r.origin - centre;
 
-        //compute quadratic equation coefficients
-        let a = r.direction.length_squared();
-        let half_b = Vec3::dot(oc, r.direction);
-        let c = oc.length_squared() - radius * radius;
-        let discriminant = half_b.powi(2) - a * c;
-        if discriminant < 0.0 {
-            None
-        } else {
-            Some((-half_b - discriminant.sqrt()) / a) //quadratic formula
-        }
+    //     //compute quadratic equation coefficients
+    //     let a = r.direction.length_squared();
+    //     let half_b = Vec3::dot(oc, r.direction);
+    //     let c = oc.length_squared() - radius * radius;
+    //     let discriminant = half_b.powi(2) - a * c;
+    //     if discriminant < 0.0 {
+    //         None
+    //     } else {
+    //         Some((-half_b - discriminant.sqrt()) / a) //quadratic formula
+    //     }
+    // }
+}
+
+#[derive(Clone, Copy)]
+pub enum Normal {
+    FrontfaceNormal(Vec3),
+    BackfaceNormal(Vec3),
+}
+impl Default for Normal {
+    fn default() -> Self {
+        Self::FrontfaceNormal(Vec3::default())
     }
 }
 
+#[derive(Clone, Copy, Default)]
 pub struct HitRecord {
     p: Point,
-    normal: Vec3,
+    normal: Normal,
     t: f64,
+}
+impl HitRecord {
+    fn normalize(r: Ray, normal: Vec3) -> Normal {
+        if Vec3::dot(r.direction, normal) < 0.0 {
+            Normal::FrontfaceNormal(normal)
+        } else {
+            Normal::BackfaceNormal(-normal)
+        }
+    }
 }
 
 pub trait Hittable {
     fn hit(&self, r: Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
-struct Sphere {
+pub struct Sphere {
     centre: Point,
     radius: f64,
 }
@@ -221,12 +252,48 @@ impl Hittable for Sphere {
         Some(HitRecord {
             t: root,
             p: r.at(root),
-            normal: (r.at(root) - self.centre) / self.radius,
+            normal: HitRecord::normalize(r, (r.at(root) - self.centre) / self.radius),
         })
     }
 }
 impl Sphere {
-    fn new(centre: Point, radius: f64) -> Self {
+    pub fn new(centre: Point, radius: f64) -> Self {
         Self { centre, radius }
     }
 }
+
+struct HittableList {
+    objects: Vec<Box<dyn Hittable>>
+}
+impl HittableList {
+    pub fn clear(&mut self) {
+        self.objects.clear();
+    }
+    pub fn add(&mut self, new: Box<dyn Hittable>) {
+        self.objects.push(new)
+    }
+}
+impl Hittable for HittableList {
+    fn hit(&self, r: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let hit_anything = false;
+        let mut closest = HitRecord{
+            t: t_max,
+            ..Default::default()
+        };
+
+        for object in &self.objects {
+            closest = if let Some(closest) = object.hit(r, t_min, closest.t) {
+                closest
+            } else {
+                closest
+            };
+        }
+
+        if hit_anything {
+            Some(closest)
+        } else {
+            None
+        }
+    }
+}
+
