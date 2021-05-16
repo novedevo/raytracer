@@ -165,12 +165,13 @@ impl Ray {
     pub fn at(self, t: f64) -> Point {
         self.origin + t * self.direction
     }
-    pub fn colour(self, world: Box<dyn Hittable>) -> Colour {
+    pub fn colour(self, world: &dyn Hittable) -> Colour {
         if let Some(rec) = world.hit(self, 0.0, f64::INFINITY) {
-            return 0.5*(match rec.normal {
-                Normal::FrontfaceNormal(normal) => normal,
-                Normal::BackfaceNormal(normal) => normal,
-            } + Colour::new(1.0, 1.0, 1.0))
+            return 0.5
+                * (match rec.normal {
+                    Normal::FrontfaceNormal(normal) => normal,
+                    Normal::BackfaceNormal(normal) => normal,
+                } + Colour::new(1.0, 1.0, 1.0));
         }
         let t = 0.5 * (self.direction.unit().e[1] + 1.0);
         (1.0 - t) * Colour::new(0.0, 0.0, 0.0) + t * Colour::new(0.0, 0.2, 1.0)
@@ -262,8 +263,9 @@ impl Sphere {
     }
 }
 
-struct HittableList {
-    objects: Vec<Box<dyn Hittable>>
+#[derive(Default)]
+pub struct HittableList {
+    objects: Vec<Box<dyn Hittable>>,
 }
 impl HittableList {
     pub fn clear(&mut self) {
@@ -275,14 +277,15 @@ impl HittableList {
 }
 impl Hittable for HittableList {
     fn hit(&self, r: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        let hit_anything = false;
-        let mut closest = HitRecord{
+        let mut hit_anything = false;
+        let mut closest = HitRecord {
             t: t_max,
             ..Default::default()
         };
 
         for object in &self.objects {
             closest = if let Some(closest) = object.hit(r, t_min, closest.t) {
+                hit_anything = true;
                 closest
             } else {
                 closest
@@ -297,3 +300,40 @@ impl Hittable for HittableList {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct Camera {
+    origin: Point,
+    lower_left_corner: Point,
+    horizontal: Vec3,
+    vertical: Vec3,
+}
+impl Camera {
+    pub fn new() -> Self {
+        //Image
+        let aspect_ratio = 16.0 / 9.0;
+
+        //Camera
+        let viewport_height = 2.0;
+        let viewport_width = viewport_height * aspect_ratio;
+        let focal_length = 1.0;
+
+        let horizontal = Vec3::new(viewport_width, 0.0, 0.0);
+        let vertical = Vec3::new(0.0, viewport_height, 0.0);
+
+        Self {
+            origin: Point::default(),
+            horizontal,
+            vertical,
+            lower_left_corner: Point::default()
+                - horizontal / 2.0
+                - vertical / 2.0
+                - Vec3::new(0.0, 0.0, focal_length),
+        }
+    }
+    pub fn get_ray(self, u: f64, v: f64) -> Ray {
+        Ray::new(
+            self.origin,
+            self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin,
+        )
+    }
+}
