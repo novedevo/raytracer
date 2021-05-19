@@ -1,3 +1,4 @@
+use rand::{self, Rng};
 use std::{
     fmt,
     ops::{Add, Div, Index, Mul, Neg, Sub},
@@ -130,6 +131,27 @@ impl Vec3 {
     pub fn unit(self) -> Self {
         self / self.length()
     }
+    pub fn random() -> Self {
+        let mut rng = rand::thread_rng();
+        Self::new(rng.gen(), rng.gen(), rng.gen())
+    }
+    pub fn random_range(low: f64, high: f64) -> Self {
+        let mut rng = rand::thread_rng();
+        Self::new(
+            rng.gen_range(low..high),
+            rng.gen_range(low..high),
+            rng.gen_range(low..high),
+        )
+    }
+    pub fn random_in_unit_sphere() -> Self {
+        loop {
+            let p = Self::random_range(-1.0, 1.0);
+            if p.length_squared() >= 1.0 {
+                continue;
+            }
+            return p.unit();
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
@@ -146,9 +168,9 @@ impl fmt::Display for RGBColour {
 impl From<Vec3> for RGBColour {
     fn from(other: Vec3) -> Self {
         Self {
-            r: (other.e[0] * 255.999) as u8,
-            g: (other.e[1] * 255.999) as u8,
-            b: (other.e[2] * 255.999) as u8,
+            g: (other.e[1].sqrt() * 255.999) as u8,
+            b: (other.e[2].sqrt() * 255.999) as u8,
+            r: (other.e[0].sqrt() * 255.999) as u8,
         }
     }
 }
@@ -165,16 +187,21 @@ impl Ray {
     pub fn at(self, t: f64) -> Point {
         self.origin + t * self.direction
     }
-    pub fn colour(self, world: &dyn Hittable) -> Colour {
-        if let Some(rec) = world.hit(self, 0.0, f64::INFINITY) {
-            return 0.5
-                * (match rec.normal {
+    pub fn colour(self, world: &dyn Hittable, max_depth: usize) -> Colour {
+        if max_depth == 0 {
+            return Colour::new(0.0, 0.0, 0.0);
+        }
+        if let Some(rec) = world.hit(self, 0.00000000000001, f64::INFINITY) {
+            let target = rec.p
+                + match rec.normal {
                     Normal::FrontfaceNormal(normal) => normal,
                     Normal::BackfaceNormal(normal) => normal,
-                } + Colour::new(1.0, 1.0, 1.0));
+                }
+                + Vec3::random_in_unit_sphere();
+            return 0.5 * Self::new(rec.p, target - rec.p).colour(world, max_depth - 1);
         }
         let t = 0.5 * (self.direction.unit().e[1] + 1.0);
-        (1.0 - t) * Colour::new(0.0, 0.0, 0.0) + t * Colour::new(0.0, 0.2, 1.0)
+        (1.0 - t) * Colour::new(1.0, 1.0, 1.0) + t * Colour::new(0.5, 0.7, 1.0)
     }
     // fn hit_sphere(centre: Point, radius: f64, r: Self) -> Option<f64> {
     //     let oc = r.origin - centre;
