@@ -191,7 +191,7 @@ impl Ray {
         if max_depth == 0 {
             return Colour::new(0.0, 0.0, 0.0);
         }
-        if let Some(rec) = world.hit(self, 0.00000000000001, f64::INFINITY) {
+        if let Some(rec) = world.hit(self, 0.00001, f64::INFINITY) {
             let target = rec.p
                 + match rec.normal {
                     Normal::FrontfaceNormal(normal) => normal,
