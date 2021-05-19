@@ -1,5 +1,5 @@
 use rand::{self, Rng};
-use std::{fmt, ops::{Add, Div, Index, Mul, Neg, Sub}, sync::Arc};
+use std::{fmt, ops::{Add, Div, Index, Mul, Neg, Sub}};
 
 type Colour = Vec3;
 type Point = Vec3;
@@ -290,13 +290,10 @@ impl Sphere {
 
 #[derive(Default, Clone)]
 pub struct HittableList {
-    objects: Vec<Arc<dyn Hittable + Sync + Send>>,
+    objects: Vec<Sphere>,
 }
 impl HittableList {
-    pub fn clear(&mut self) {
-        self.objects.clear();
-    }
-    pub fn add(&mut self, new: Arc<dyn Hittable + Sync + Send>) {
+    pub fn add(&mut self, new: Sphere) {
         self.objects.push(new)
     }
 }

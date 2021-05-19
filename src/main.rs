@@ -3,7 +3,6 @@ use rand::{self, Rng};
 use vec3::{Camera, HittableList, RGBColour, Sphere, Vec3};
 
 use std::{io::BufWriter};
-use std::sync::Arc;
 use std::{thread};
 use std::{fs::File, io::Write, path::Path}; //to flush the print! call after each scanline updates
 
@@ -21,8 +20,8 @@ fn main() {
 
     //World
     let mut world = HittableList::default();
-    world.add(Arc::new(Sphere::new(Point::new(0.5, 0.0, -1.0), 0.5)));
-    world.add(Arc::new(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0)));
+    world.add(Sphere::new(Point::new(0.5, 0.0, -1.0), 0.5));
+    world.add(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0));
 
     let camera = Camera::new();
 
@@ -63,8 +62,8 @@ fn main() {
         }));
     }
 
-    let mut output: [[RGBColour; IMAGE_WIDTH]; IMAGE_HEIGHT] =
-    [[RGBColour::default(); IMAGE_WIDTH]; IMAGE_HEIGHT];
+    let mut output=
+    vec![[RGBColour::default(); IMAGE_WIDTH]; IMAGE_HEIGHT];
 
     for handle in threads {
         for (colours, row) in handle.join().unwrap() {
@@ -74,8 +73,8 @@ fn main() {
 
     println!();
 
-    for scanline in &output {
-        for pixel in scanline {
+    for scanline in output {
+        for pixel in &scanline {
             writeln!(out_file, "{}", pixel).unwrap();
         }
     }
