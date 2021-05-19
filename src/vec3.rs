@@ -1,8 +1,5 @@
 use rand::{self, Rng};
-use std::{
-    fmt,
-    ops::{Add, Div, Index, Mul, Neg, Sub},
-};
+use std::{fmt, ops::{Add, Div, Index, Mul, Neg, Sub}, sync::Arc};
 
 type Colour = Vec3;
 type Point = Vec3;
@@ -250,6 +247,7 @@ pub trait Hittable {
     fn hit(&self, r: Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
+#[derive(Clone, Copy)]
 pub struct Sphere {
     centre: Point,
     radius: f64,
@@ -290,15 +288,15 @@ impl Sphere {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct HittableList {
-    objects: Vec<Box<dyn Hittable>>,
+    objects: Vec<Arc<dyn Hittable + Sync + Send>>,
 }
 impl HittableList {
     pub fn clear(&mut self) {
         self.objects.clear();
     }
-    pub fn add(&mut self, new: Box<dyn Hittable>) {
+    pub fn add(&mut self, new: Arc<dyn Hittable + Sync + Send>) {
         self.objects.push(new)
     }
 }
