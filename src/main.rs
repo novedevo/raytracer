@@ -1,8 +1,9 @@
 mod vec3;
 use rand::{self, Rng};
-use vec3::{Camera, HittableList, RGBColour, Ray, Sphere, Vec3};
+use vec3::{Camera, HittableList, RGBColour, Sphere, Vec3};
 
-use std::io::Write;
+use std::io::BufWriter;
+use std::{fs::File, io::Write, path::Path}; //to flush the print! call after each scanline updates
 
 type Colour = Vec3;
 type Point = Vec3;
@@ -10,7 +11,7 @@ type Point = Vec3;
 fn main() {
     //Image
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 1920;
+    let image_width = 1920 / 4;
     let image_height = (image_width as f64 / aspect_ratio) as u32;
     let samples_per_pixel = 100;
     let max_depth = 50;
@@ -22,8 +23,11 @@ fn main() {
 
     let camera = Camera::new();
 
+    let mut out_file = BufWriter::new(File::create(Path::new("out.ppm")).unwrap());
+
     //Render
-    print!("P3\n{} {}\n255\n", image_width, image_height);
+    write!(out_file, "P3\n{} {}\n255\n", image_width, image_height)
+        .expect("could not write to file!");
     let mut rng = rand::thread_rng();
 
     for j in (0..image_height).rev() {
@@ -39,8 +43,10 @@ fn main() {
                 pixel_colour = pixel_colour + r.colour(&world, max_depth);
             }
             let pixel_colour = RGBColour::from(pixel_colour / samples_per_pixel as f64);
-            println!("{}", pixel_colour);
+            writeln!(out_file, "{}", pixel_colour).unwrap();
         }
     }
     eprintln!();
+
+    out_file.flush().unwrap();
 }
