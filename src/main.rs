@@ -46,27 +46,26 @@ fn main() {
         threads.push(thread::spawn(move || render(&camera, thread_num, &world)));
     }
 
-    let mut output = vec![[RGBColour::default(); IMAGE_WIDTH]; IMAGE_HEIGHT];
+    let mut component_vec = vec![0; IMAGE_WIDTH * IMAGE_HEIGHT * 3];
 
-    //wait for all threads to finish execution, then slot their lines into the final vector
+    //wait for all threads to finish execution, then fill the component vector
     for handle in threads {
         for (colours, row) in handle.join().unwrap() {
-            output[IMAGE_HEIGHT - 1 - row] = colours;
+            for (row_index, pixel) in colours.iter().enumerate() {
+                let components: [u8; 3] = pixel.into();
+                let index = (IMAGE_WIDTH * (IMAGE_HEIGHT - 1 - row) + row_index) * 3;
+
+                component_vec[index] = components[0];
+                component_vec[index + 1] = components[1];
+                component_vec[index + 2] = components[2];
+            }
         }
     }
 
     println!("\rScanlines remaining: 0");
 
-    let mut pixel_buffer = Vec::with_capacity(output.len() * 3);
-    for scanline in output {
-        for pixel in &scanline {
-            let components: [u8; 3] = pixel.into();
-            pixel_buffer.extend_from_slice(&components);
-        }
-    }
-
     png_writer
-        .write_image_data(&pixel_buffer)
+        .write_image_data(&component_vec)
         .expect("Failed to write PNG data");
 }
 
