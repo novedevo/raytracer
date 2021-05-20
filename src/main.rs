@@ -1,7 +1,3 @@
-mod material;
-mod ray;
-mod vec3;
-
 use std::{fs::File, path::Path};
 use std::{io::BufWriter, sync::Arc};
 use std::{thread, time::Instant};

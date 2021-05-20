@@ -1,7 +1,7 @@
 [package]
 name = "raytracer"
 version = "0.1.0"
-authors = ["Devon Burnham <novedevo@gmail.com>"]
+authors = ["Devon Burnham <novedevo@gmail.com>", "gennyble <genny@genbyte.dev>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

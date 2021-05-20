@@ -15,7 +15,7 @@ pub struct RGBColour {
 }
 impl RGBColour {
     // useful for when type inference won't work ( and you can't turbofish into :( )
-    pub(crate) fn colors(self) -> [u8; 3] {
+    pub(crate) fn colours(self) -> [u8; 3] {
         self.into()
     }
 }

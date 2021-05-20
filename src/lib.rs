@@ -65,7 +65,6 @@ impl Renderer {
             component_vec[index * 3 + 1] = color.g;
             component_vec[index * 3 + 2] = color.b;
         }
-        println!();
 
         component_vec
     }
