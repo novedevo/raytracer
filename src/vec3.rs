@@ -1,5 +1,8 @@
 use rand::{self, Rng};
-use std::{fmt, ops::{Add, Div, Index, Mul, Neg, Sub}};
+use std::{
+    fmt,
+    ops::{Add, Div, Index, Mul, Neg, Sub},
+};
 
 type Colour = Vec3;
 type Point = Vec3;
@@ -35,19 +38,19 @@ impl Sub for Vec3 {
         }
     }
 }
-// impl Mul for Vec3 {
-//     type Output = Self;
+impl Mul for Vec3 {
+    type Output = Self;
 
-//     fn mul(self, other: Self) -> Self {
-//         Self {
-//             e: [
-//                 self.e[0] * other.e[0],
-//                 self.e[1] * other.e[1],
-//                 self.e[2] * other.e[2],
-//             ],
-//         }
-//     }
-// }
+    fn mul(self, other: Self) -> Self {
+        Self {
+            e: [
+                self.e[0] * other.e[0],
+                self.e[1] * other.e[1],
+                self.e[2] * other.e[2],
+            ],
+        }
+    }
+}
 impl Mul<f64> for Vec3 {
     type Output = Self;
 
@@ -140,7 +143,7 @@ impl Vec3 {
             rng.gen_range(low..high),
         )
     }
-    pub fn random_in_unit_sphere() -> Self {
+    pub fn random_unit() -> Self {
         loop {
             let p = Self::random_range(-1.0, 1.0);
             if p.length_squared() >= 1.0 {
@@ -148,6 +151,12 @@ impl Vec3 {
             }
             return p.unit();
         }
+    }
+    pub fn is_near_zero(self) -> bool {
+        self.e.iter().all(|elem| elem.abs() < 1e-8)
+    }
+    pub fn reflect(self, normal: Self) -> Self {
+        self - 2.0 * Self::dot(self, normal) * normal
     }
 }
 
@@ -194,13 +203,10 @@ impl Ray {
             return Colour::new(0.0, 0.0, 0.0);
         }
         if let Some(rec) = world.hit(self, 0.00001, f64::INFINITY) {
-            let target = rec.p
-                + match rec.normal {
-                    Normal::FrontfaceNormal(normal) => normal,
-                    Normal::BackfaceNormal(normal) => normal,
-                }
-                + Vec3::random_in_unit_sphere();
-            return 0.5 * Self::new(rec.p, target - rec.p).colour(world, max_depth - 1);
+            if let Some((attentuation, scattered)) = rec.material.scatter(self, &rec) {
+                return attentuation * scattered.colour(world, max_depth - 1);
+            }
+            return Colour::new(0.0, 0.0, 0.0);
         }
         let t = 0.5 * (self.direction.unit().e[1] + 1.0);
         (1.0 - t) * Colour::new(1.0, 1.0, 1.0) + t * Colour::new(0.5, 0.7, 1.0)
@@ -221,29 +227,30 @@ impl Ray {
     // }
 }
 
-#[derive(Clone, Copy)]
-pub enum Normal {
-    FrontfaceNormal(Vec3),
-    BackfaceNormal(Vec3),
-}
-impl Default for Normal {
-    fn default() -> Self {
-        Self::FrontfaceNormal(Vec3::default())
-    }
-}
+// #[derive(Clone, Copy)]
+// pub enum Normal {
+//     FrontfaceNormal(Vec3),
+//     BackfaceNormal(Vec3),
+// }
+// impl Default for Normal {
+//     fn default() -> Self {
+//         Self::FrontfaceNormal(Vec3::default())
+//     }
+// }
 
 #[derive(Clone, Copy, Default)]
 pub struct HitRecord {
     p: Point,
-    normal: Normal,
+    normal: Vec3,
     t: f64,
+    material: Material,
 }
 impl HitRecord {
-    fn normalize(r: Ray, normal: Vec3) -> Normal {
+    fn normalize(r: Ray, normal: Vec3) -> Vec3 {
         if Vec3::dot(r.direction, normal) < 0.0 {
-            Normal::FrontfaceNormal(normal)
+            normal
         } else {
-            Normal::BackfaceNormal(-normal)
+            -normal
         }
     }
 }
@@ -256,6 +263,7 @@ pub trait Hittable {
 pub struct Sphere {
     centre: Point,
     radius: f64,
+    material: Material,
 }
 impl Hittable for Sphere {
     fn hit(&self, r: Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
@@ -284,12 +292,17 @@ impl Hittable for Sphere {
             t: root,
             p: r.at(root),
             normal: HitRecord::normalize(r, (r.at(root) - self.centre) / self.radius),
+            material: self.material,
         })
     }
 }
 impl Sphere {
-    pub fn new(centre: Point, radius: f64) -> Self {
-        Self { centre, radius }
+    pub fn new(centre: Point, radius: f64, material: Material) -> Self {
+        Self {
+            centre,
+            radius,
+            material,
+        }
     }
 }
 
@@ -372,5 +385,48 @@ impl Camera {
             self.origin,
             self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin,
         )
+    }
+}
+
+trait Scatterer {
+    fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Colour, Ray)>;
+}
+
+#[derive(Clone, Copy)]
+pub enum Material {
+    Lambertian(Colour),
+    Metal(Colour),
+}
+impl Default for Material {
+    fn default() -> Self {
+        Self::Lambertian(Colour::new(0.5, 0.5, 0.5))
+    }
+}
+
+impl Scatterer for Material {
+    fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Colour, Ray)> {
+        match self {
+            Self::Lambertian(albedo) => {
+                let scatter_direction = rec.normal + Vec3::random_unit();
+                Some((
+                    *albedo,
+                    Ray::new(
+                        rec.p,
+                        match scatter_direction.is_near_zero() {
+                            true => rec.normal,
+                            false => scatter_direction,
+                        },
+                    ),
+                ))
+            }
+            Self::Metal(albedo) => {
+                let reflected = r_in.direction.reflect(rec.normal).unit();
+                let scattered = Ray::new(rec.p, reflected);
+                match Vec3::dot(scattered.direction, rec.normal) > 0.0 {
+                    false => None,
+                    true => Some((*albedo, scattered)),
+                }
+            }
+        }
     }
 }

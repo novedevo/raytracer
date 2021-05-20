@@ -1,6 +1,6 @@
 mod vec3;
 use rand::{self, Rng};
-use vec3::{Camera, HittableList, RGBColour, Sphere, Vec3};
+use vec3::{Camera, HittableList, RGBColour, Sphere, Vec3, Material};
 
 use std::io::BufWriter;
 use std::thread;
@@ -22,8 +22,16 @@ const NUM_THREADS: usize = 12;
 fn main() {
     //Worldgen!
     let mut world = HittableList::default();
-    world.add(Sphere::new(Point::new(0.5, 0.0, -1.0), 0.5));
-    world.add(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0));
+
+    let ground = Material::Lambertian(Colour::new(0.8, 0.8, 0.0));
+    let terracotta = Material::Lambertian(Colour::new(0.7, 0.3, 0.3));
+    let silver = Material::Metal(Colour::new(0.8, 0.8, 0.8));
+    let gold = Material::Metal(Colour::new(0.8, 0.6, 0.2));
+
+    world.add(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0, ground));
+    world.add(Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5, terracotta));
+    world.add(Sphere::new(Point::new(-1.0, 0.0, -1.0), 0.5, silver));
+    world.add(Sphere::new(Point::new(1.0, 0.0, -1.0), 0.5, gold));
 
     let camera = Camera::new();
 
