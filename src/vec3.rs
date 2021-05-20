@@ -125,17 +125,17 @@ impl Vec3 {
     fn length_squared(self) -> f64 {
         self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2]
     }
-    fn length(self) -> f64 {
+    pub fn length(self) -> f64 {
         self.length_squared().sqrt()
     }
     fn unit(self) -> Self {
         self / self.length()
     }
-    fn random() -> Self {
+    pub fn random() -> Self {
         let mut rng = rand::thread_rng();
         Self::new(rng.gen(), rng.gen(), rng.gen())
     }
-    fn random_range(low: f64, high: f64) -> Self {
+    pub fn random_range(low: f64, high: f64) -> Self {
         let mut rng = rand::thread_rng();
         Self::new(
             rng.gen_range(low..high),
