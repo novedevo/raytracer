@@ -13,12 +13,7 @@ pub struct RGBColour {
     pub g: u8,
     pub b: u8,
 }
-impl RGBColour {
-    // useful for when type inference won't work ( and you can't turbofish into :( )
-    pub(crate) fn colours(self) -> [u8; 3] {
-        self.into()
-    }
-}
+
 impl fmt::Display for RGBColour {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {} {}", self.r, self.g, self.b)
