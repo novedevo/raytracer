@@ -2,9 +2,9 @@ mod material;
 mod ray;
 mod vec3;
 
-use material::Material;
+use material::{Material, RGBColour};
 use ray::{Camera, HittableList, Sphere};
-use vec3::{RGBColour, Vec3};
+use vec3::Vec3;
 
 use std::io::BufWriter;
 use std::thread;

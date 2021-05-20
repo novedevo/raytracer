@@ -1,9 +1,37 @@
 use crate::ray::{HitRecord, Ray};
 use crate::vec3::Vec3;
 
+use std::fmt;
+
 use rand::Rng;
 
 pub type Colour = Vec3;
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub struct RGBColour {
+    r: u8,
+    g: u8,
+    b: u8,
+}
+impl fmt::Display for RGBColour {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {}", self.r, self.g, self.b)
+    }
+}
+impl From<Vec3> for RGBColour {
+    fn from(other: Vec3) -> Self {
+        Self {
+            g: (other.e[1].sqrt() * 255.999) as u8,
+            b: (other.e[2].sqrt() * 255.999) as u8,
+            r: (other.e[0].sqrt() * 255.999) as u8,
+        }
+    }
+}
+impl From<&RGBColour> for [u8; 3] {
+    fn from(colour: &RGBColour) -> Self {
+        [colour.r, colour.g, colour.b]
+    }
+}
 
 #[derive(Clone, Copy)]
 pub enum Material {
