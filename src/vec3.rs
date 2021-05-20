@@ -355,45 +355,30 @@ pub struct Camera {
     vertical: Vec3,
 }
 impl Camera {
-    pub fn new(vfov: f64, aspect_ratio: f64) -> Self {
-
+    pub fn new(vfov: f64, aspect_ratio: f64, origin: Point, focus: Vec3, vup: Vec3) -> Self {
         let theta = vfov.to_radians();
-        let h = (theta/2.0).tan();
-        let viewport_height = 2.0*h;
+        let h = (theta / 2.0).tan();
+        let viewport_height = 2.0 * h;
         let viewport_width = viewport_height * aspect_ratio;
 
-        // //Camera
-        // let viewport_height = 2.0;
-        // let viewport_width = viewport_height * aspect_ratio;
-        let focal_length = 1.0;
+        let w = (origin - focus).unit();
+        let u = Vec3::cross(vup, w);
+        let v = Vec3::cross(w, u);
 
-        let tilt_radians = 2.0 * std::f64::consts::PI;
-
-        let horizontal = Vec3::new(
-            viewport_width * tilt_radians.cos(),
-            viewport_width * tilt_radians.sin(),
-            0.0,
-        );
-        let vertical = Vec3::new(
-            viewport_height * -tilt_radians.sin(),
-            viewport_height * tilt_radians.cos(),
-            0.0,
-        );
+        let horizontal = viewport_width * u;
+        let vertical = viewport_height * v;
 
         Self {
-            origin: Point::default(),
+            origin,
             horizontal,
             vertical,
-            lower_left_corner: Point::default()
-                - horizontal / 2.0
-                - vertical / 2.0
-                - Vec3::new(0.0, 0.0, focal_length),
+            lower_left_corner: origin - horizontal / 2.0 - vertical / 2.0 - w
         }
     }
-    pub fn get_ray(self, u: f64, v: f64) -> Ray {
+    pub fn get_ray(self, s: f64, t: f64) -> Ray {
         Ray::new(
             self.origin,
-            self.lower_left_corner + u * self.horizontal + v * self.vertical - self.origin,
+            self.lower_left_corner + s * self.horizontal + t * self.vertical - self.origin,
         )
     }
 }

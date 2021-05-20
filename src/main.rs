@@ -1,6 +1,6 @@
 mod vec3;
 use rand::{self, Rng};
-use vec3::{Camera, HittableList, RGBColour, Sphere, Vec3, Material};
+use vec3::{Camera, HittableList, Material, RGBColour, Sphere, Vec3};
 
 use std::io::BufWriter;
 use std::thread;
@@ -35,7 +35,13 @@ fn main() {
     world.add(Sphere::new(Point::new(-1.0, 0.0, -1.0), -0.4, glass)); //hollow centre
     world.add(Sphere::new(Point::new(1.0, 0.0, -1.0), 0.5, gold));
 
-    let camera = Camera::new(110.0, ASPECT_RATIO);
+    let camera = Camera::new(
+        50.0,
+        ASPECT_RATIO,
+        Point::new(-2.0, 2.0, 1.0),
+        Point::new(0.0, 0.0, -1.0),
+        Vec3::new(0.0, 1.0, 0.0),
+    );
 
     let mut png_encoder = Encoder::new(
         BufWriter::new(File::create(Path::new("out.png")).unwrap()),
