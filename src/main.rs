@@ -1,18 +1,23 @@
+mod material;
+mod ray;
 mod vec3;
-use rand::{self, Rng};
-use vec3::{Camera, HittableList, Material, RGBColour, Sphere, Vec3};
+
+use material::Material;
+use ray::{Camera, HittableList, Sphere};
+use vec3::{RGBColour, Vec3};
 
 use std::io::BufWriter;
 use std::thread;
 use std::{fs::File, io::Write, path::Path}; //to flush the print! call after each scanline updates
 
 use png::Encoder;
+use rand::{self, Rng};
 
 type Colour = Vec3;
 type Point = Vec3;
 
 //Image parameters
-const ASPECT_RATIO: f64 = 3.0/2.0;
+const ASPECT_RATIO: f64 = 3.0 / 2.0;
 const IMAGE_WIDTH: usize = 1200;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 const SAMPLES_PER_PIXEL: usize = 500;
