@@ -9,7 +9,7 @@ type Point = Vec3;
 
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct Vec3 {
-    pub e: [f64; 3],
+    e: [f64; 3],
 }
 
 impl Add for Vec3 {
@@ -110,10 +110,10 @@ impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self { e: [x, y, z] }
     }
-    pub fn dot(lhs: Self, rhs: Self) -> f64 {
+    fn dot(lhs: Self, rhs: Self) -> f64 {
         lhs.e[0] * rhs.e[0] + lhs.e[1] * rhs.e[1] + lhs.e[2] * rhs.e[2]
     }
-    pub fn cross(lhs: Self, rhs: Self) -> Self {
+    fn cross(lhs: Self, rhs: Self) -> Self {
         Self {
             e: [
                 lhs.e[1] * rhs.e[2] - lhs.e[2] * rhs.e[1],
@@ -122,20 +122,20 @@ impl Vec3 {
             ],
         }
     }
-    pub fn length_squared(self) -> f64 {
+    fn length_squared(self) -> f64 {
         self.e[0] * self.e[0] + self.e[1] * self.e[1] + self.e[2] * self.e[2]
     }
-    pub fn length(self) -> f64 {
+    fn length(self) -> f64 {
         self.length_squared().sqrt()
     }
-    pub fn unit(self) -> Self {
+    fn unit(self) -> Self {
         self / self.length()
     }
-    pub fn random() -> Self {
+    fn random() -> Self {
         let mut rng = rand::thread_rng();
         Self::new(rng.gen(), rng.gen(), rng.gen())
     }
-    pub fn random_range(low: f64, high: f64) -> Self {
+    fn random_range(low: f64, high: f64) -> Self {
         let mut rng = rand::thread_rng();
         Self::new(
             rng.gen_range(low..high),
@@ -143,7 +143,7 @@ impl Vec3 {
             rng.gen_range(low..high),
         )
     }
-    pub fn random_unit() -> Self {
+    fn random_unit() -> Self {
         loop {
             let p = Self::random_range(-1.0, 1.0);
             if p.length_squared() >= 1.0 {
@@ -152,10 +152,10 @@ impl Vec3 {
             return p.unit();
         }
     }
-    pub fn is_near_zero(self) -> bool {
+    fn is_near_zero(self) -> bool {
         self.e.iter().all(|elem| elem.abs() < 1e-8)
     }
-    pub fn reflect(self, normal: Self) -> Self {
+    fn reflect(self, normal: Self) -> Self {
         self - 2.0 * Self::dot(self, normal) * normal
     }
 }
@@ -195,10 +195,10 @@ impl Ray {
     pub fn new(origin: Point, direction: Vec3) -> Self {
         Self { origin, direction }
     }
-    pub fn at(self, t: f64) -> Point {
+    fn at(self, t: f64) -> Point {
         self.origin + t * self.direction
     }
-    pub fn colour(self, world: &dyn Hittable, max_depth: usize) -> Colour {
+    pub fn colour(self, world: &HittableList, max_depth: usize) -> Colour {
         if max_depth == 0 {
             return Colour::new(0.0, 0.0, 0.0);
         }
@@ -255,7 +255,7 @@ impl HitRecord {
     }
 }
 
-pub trait Hittable {
+trait Hittable {
     fn hit(&self, r: Ray, t_min: f64, t_max: f64) -> Option<HitRecord>;
 }
 
@@ -357,7 +357,7 @@ impl Camera {
         let viewport_width = viewport_height * aspect_ratio;
         let focal_length = 1.0;
 
-        let tilt_radians = -0.25 * std::f64::consts::PI;
+        let tilt_radians = 2.0 * std::f64::consts::PI;
 
         let horizontal = Vec3::new(
             viewport_width * tilt_radians.cos(),
@@ -388,10 +388,6 @@ impl Camera {
     }
 }
 
-trait Scatterer {
-    fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Colour, Ray)>;
-}
-
 #[derive(Clone, Copy)]
 pub enum Material {
     Lambertian(Colour),
@@ -403,7 +399,7 @@ impl Default for Material {
     }
 }
 
-impl Scatterer for Material {
+impl  Material {
     fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Colour, Ray)> {
         match self {
             Self::Lambertian(albedo) => {
