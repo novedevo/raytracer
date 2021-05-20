@@ -35,7 +35,7 @@ fn main() {
     world.add(Sphere::new(Point::new(-1.0, 0.0, -1.0), -0.4, glass)); //hollow centre
     world.add(Sphere::new(Point::new(1.0, 0.0, -1.0), 0.5, gold));
 
-    let camera = Camera::new();
+    let camera = Camera::new(110.0, ASPECT_RATIO);
 
     let mut png_encoder = Encoder::new(
         BufWriter::new(File::create(Path::new("out.png")).unwrap()),

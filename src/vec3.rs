@@ -355,13 +355,16 @@ pub struct Camera {
     vertical: Vec3,
 }
 impl Camera {
-    pub fn new() -> Self {
-        //Image
-        let aspect_ratio = 16.0 / 9.0;
+    pub fn new(vfov: f64, aspect_ratio: f64) -> Self {
 
-        //Camera
-        let viewport_height = 2.0;
+        let theta = vfov.to_radians();
+        let h = (theta/2.0).tan();
+        let viewport_height = 2.0*h;
         let viewport_width = viewport_height * aspect_ratio;
+
+        // //Camera
+        // let viewport_height = 2.0;
+        // let viewport_width = viewport_height * aspect_ratio;
         let focal_length = 1.0;
 
         let tilt_radians = 2.0 * std::f64::consts::PI;
