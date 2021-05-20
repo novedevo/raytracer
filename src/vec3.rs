@@ -1,8 +1,5 @@
 use rand::{self, Rng};
-use std::{
-    fmt,
-    ops::{Add, Div, Index, Mul, Neg, Sub},
-};
+use std::{fmt, ops::{Add, Div, Index, Mul, Neg, Sub}};
 
 type Colour = Vec3;
 type Point = Vec3;
@@ -347,8 +344,18 @@ impl Camera {
         let viewport_width = viewport_height * aspect_ratio;
         let focal_length = 1.0;
 
-        let horizontal = Vec3::new(viewport_width, 0.0, 0.0);
-        let vertical = Vec3::new(0.0, viewport_height, 0.0);
+        let tilt_radians = -0.25 * std::f64::consts::PI;
+
+        let horizontal = Vec3::new(
+            viewport_width * tilt_radians.cos(),
+            viewport_width * tilt_radians.sin(),
+            0.0,
+        );
+        let vertical = Vec3::new(
+            viewport_height * -tilt_radians.sin(),
+            viewport_height * tilt_radians.cos(),
+            0.0,
+        );
 
         Self {
             origin: Point::default(),
