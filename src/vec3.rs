@@ -1,5 +1,8 @@
 use rand::{self, Rng};
-use std::{fmt, ops::{Add, Div, Index, Mul, Neg, Sub}};
+use std::{
+    fmt,
+    ops::{Add, Div, Index, Mul, Neg, Sub},
+};
 
 type Colour = Vec3;
 type Point = Vec3;
@@ -169,6 +172,11 @@ impl From<Vec3> for RGBColour {
             b: (other.e[2].sqrt() * 255.999) as u8,
             r: (other.e[0].sqrt() * 255.999) as u8,
         }
+    }
+}
+impl From<&RGBColour> for [u8; 3] {
+    fn from(colour: &RGBColour) -> Self {
+        [colour.r, colour.g, colour.b]
     }
 }
 
