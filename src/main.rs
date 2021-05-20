@@ -30,10 +30,10 @@ fn main() {
     );
 
     let viewport = Viewport::new(
-        IMAGE_WIDTH as u32,
-        IMAGE_HEIGHT as u32,
-        SAMPLES_PER_PIXEL as u32,
-        MAX_DEPTH as u32,
+        IMAGE_WIDTH,
+        IMAGE_HEIGHT,
+        SAMPLES_PER_PIXEL,
+        MAX_DEPTH,
     );
 
     let renderer = Renderer::new(viewport, camera, world);
@@ -148,7 +148,7 @@ fn render_line(renderer: Arc<Renderer>, thread_num: usize) -> Vec<(Vec<u8>, usiz
             continue;
         }
 
-        lines.push((renderer.line(j as u32), j));
+        lines.push((renderer.line(j), j));
     }
     lines
 }
