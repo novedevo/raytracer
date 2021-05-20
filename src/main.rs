@@ -6,6 +6,8 @@ use std::io::BufWriter;
 use std::thread;
 use std::{fs::File, io::Write, path::Path}; //to flush the print! call after each scanline updates
 
+use png::Encoder;
+
 type Colour = Vec3;
 type Point = Vec3;
 
@@ -25,40 +27,46 @@ fn main() {
 
     let camera = Camera::new();
 
-    let mut out_file = BufWriter::new(File::create(Path::new("out.ppm")).unwrap());
-    let mut threads = vec![];
+    let mut png_encoder = Encoder::new(
+        BufWriter::new(File::create(Path::new("out.png")).unwrap()),
+        IMAGE_WIDTH as u32,
+        IMAGE_HEIGHT as u32,
+    );
+    png_encoder.set_color(png::ColorType::RGB);
 
-    //PPM header
-    write!(out_file, "P3\n{} {}\n255\n", IMAGE_WIDTH, IMAGE_HEIGHT)
-        .expect("could not write to file!");
+    let mut png_writer = png_encoder.write_header().unwrap();
+
+    //Render
+    let mut threads = vec![];
 
     for thread_num in 0..NUM_THREADS {
         //clone the world so that we can move it into the closure
         let world = world.clone();
 
-        threads.push(thread::spawn(move || {
-            render(&camera, thread_num, &world)
-        }));
+        threads.push(thread::spawn(move || render(&camera, thread_num, &world)));
     }
 
-    let mut output = vec![[RGBColour::default(); IMAGE_WIDTH]; IMAGE_HEIGHT];
+    let mut component_vec = vec![0; IMAGE_WIDTH * IMAGE_HEIGHT * 3];
 
-    //wait for all threads to finish execution, then slot their lines into the final vector
+    //wait for all threads to finish execution, then fill the component vector
     for handle in threads {
         for (colours, row) in handle.join().unwrap() {
-            output[IMAGE_HEIGHT - 1 - row] = colours;
+            for (row_index, pixel) in colours.iter().enumerate() {
+                let components: [u8; 3] = pixel.into();
+                let index = (IMAGE_WIDTH * (IMAGE_HEIGHT - 1 - row) + row_index) * 3;
+
+                component_vec[index] = components[0];
+                component_vec[index + 1] = components[1];
+                component_vec[index + 2] = components[2];
+            }
         }
     }
 
     println!("\rScanlines remaining: 0");
 
-    for scanline in output {
-        for pixel in &scanline {
-            writeln!(out_file, "{}", pixel).unwrap();
-        }
-    }
-
-    out_file.flush().unwrap();
+    png_writer
+        .write_image_data(&component_vec)
+        .expect("Failed to write PNG data");
 }
 
 fn render(
