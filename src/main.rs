@@ -1,21 +1,23 @@
+mod material;
+mod ray;
 mod vec3;
-use rand::{self, Rng};
-use vec3::{Camera, HittableList, Material, RGBColour, Sphere, Vec3};
 
-use std::io::BufWriter;
-use std::thread;
-use std::{fs::File, io::Write, path::Path}; //to flush the print! call after each scanline updates
+use std::{fs::File, io::Write, path::Path};
+use std::{io::BufWriter, sync::Arc};
+use std::{thread, time::Instant}; //to flush the print! call after each scanline updates
 
 use png::Encoder;
+use rand::{self, Rng};
 
-type Colour = Vec3;
-type Point = Vec3;
+use raytracer::material::{Colour, Material};
+use raytracer::ray::{Camera, HittableList, Sphere};
+use raytracer::{Point, Renderer, Vec3, Viewport};
 
 //Image parameters
-const ASPECT_RATIO: f64 = 3.0/2.0;
-const IMAGE_WIDTH: usize = 1200;
+const ASPECT_RATIO: f64 = 3.0 / 2.0;
+const IMAGE_WIDTH: usize = 640;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 500;
+const SAMPLES_PER_PIXEL: usize = 1;
 const MAX_DEPTH: usize = 50;
 const NUM_THREADS: usize = 12;
 
@@ -31,45 +33,43 @@ fn main() {
         Vec3::new(0.0, 1.0, 0.0),
     );
 
+    let viewport = Viewport::new(
+        IMAGE_WIDTH as u32,
+        IMAGE_HEIGHT as u32,
+        SAMPLES_PER_PIXEL as u32,
+        MAX_DEPTH as u32,
+    );
+
+    let renderer = Renderer::new(viewport, camera, world);
+
+    let before = Instant::now();
+    write_buffer_as_png("out_frame.png", &renderer.frame());
+    println!(
+        "Rendering and writing frame as png took {}ms",
+        Instant::now().duration_since(before).as_millis()
+    );
+
+    let cloned_renderer = renderer.clone();
+    let before = Instant::now();
+    write_buffer_as_png("out_lines.png", &render_threaded_lines(cloned_renderer));
+    println!(
+        "Rendering(concurrently) and writing lines as png took {}ms",
+        Instant::now().duration_since(before).as_millis()
+    );
+}
+
+fn write_buffer_as_png<P: AsRef<Path>>(fname: P, buffer: &Vec<u8>) {
     let mut png_encoder = Encoder::new(
-        BufWriter::new(File::create(Path::new("out.png")).unwrap()),
+        BufWriter::new(File::create(fname).unwrap()),
         IMAGE_WIDTH as u32,
         IMAGE_HEIGHT as u32,
     );
     png_encoder.set_color(png::ColorType::RGB);
 
-    let mut png_writer = png_encoder.write_header().unwrap();
-
-    //Render
-    let mut threads = vec![];
-
-    for thread_num in 0..NUM_THREADS {
-        //clone the world so that we can move it into the closure
-        let world = world.clone();
-
-        threads.push(thread::spawn(move || render(&camera, thread_num, &world)));
-    }
-
-    let mut component_vec = vec![0; IMAGE_WIDTH * IMAGE_HEIGHT * 3];
-
-    //wait for all threads to finish execution, then fill the component vector
-    for handle in threads {
-        for (colours, row) in handle.join().unwrap() {
-            for (row_index, pixel) in colours.iter().enumerate() {
-                let components: [u8; 3] = pixel.into();
-                let index = (IMAGE_WIDTH * (IMAGE_HEIGHT - 1 - row) + row_index) * 3;
-
-                component_vec[index] = components[0];
-                component_vec[index + 1] = components[1];
-                component_vec[index + 2] = components[2];
-            }
-        }
-    }
-
-    println!("\rScanlines remaining: 0");
-
-    png_writer
-        .write_image_data(&component_vec)
+    png_encoder
+        .write_header()
+        .expect("Failed to write png head!")
+        .write_image_data(buffer)
         .expect("Failed to write PNG data");
 }
 
@@ -123,35 +123,37 @@ fn random_scene() -> HittableList {
     world
 }
 
-fn render(
-    camera: &Camera,
-    thread_num: usize,
-    world: &HittableList,
-) -> Vec<([RGBColour; IMAGE_WIDTH], usize)> {
-    let mut rng = rand::thread_rng();
+fn render_threaded_lines(renderer: Renderer) -> Vec<u8> {
+    let arc_renderer = Arc::new(renderer);
+    let mut threads = vec![];
+
+    for thread_num in 0..NUM_THREADS {
+        let cloned = arc_renderer.clone();
+        threads.push(thread::spawn(move || render_line(cloned, thread_num)));
+    }
+
+    let mut component_vec = vec![0; IMAGE_WIDTH * IMAGE_HEIGHT * 3];
+
+    //wait for all threads to finish execution, then fill the component vector
+    for handle in threads {
+        for (colours, row) in handle.join().unwrap() {
+            for (row_index, component) in colours.into_iter().enumerate() {
+                component_vec[(IMAGE_WIDTH * (IMAGE_HEIGHT - 1 - row)) * 3 + row_index] = component;
+            }
+        }
+    }
+
+    component_vec
+}
+
+fn render_line(renderer: Arc<Renderer>, thread_num: usize) -> Vec<(Vec<u8>, usize)> {
     let mut lines = vec![];
     for j in (0..IMAGE_HEIGHT).rev() {
         if j % NUM_THREADS != thread_num {
             continue;
         }
 
-        //update progress indicator
-        print!("\rScanlines remaining: {} ", j);
-        std::io::stdout().flush().unwrap();
-
-        let mut scanline = [RGBColour::default(); IMAGE_WIDTH];
-
-        for i in 0..IMAGE_WIDTH {
-            let mut pixel_colour = Colour::default();
-            for _ in 0..SAMPLES_PER_PIXEL {
-                let u = (i as f64 + rng.gen::<f64>()) / (IMAGE_WIDTH - 1) as f64;
-                let v = (j as f64 + rng.gen::<f64>()) / (IMAGE_HEIGHT - 1) as f64;
-                let r = camera.get_ray(u, v);
-                pixel_colour = pixel_colour + r.colour(world, MAX_DEPTH);
-            }
-            scanline[i] = RGBColour::from(pixel_colour / SAMPLES_PER_PIXEL as f64);
-        }
-        lines.push((scanline, j));
+        lines.push((renderer.line(j as u32), j));
     }
     lines
 }
