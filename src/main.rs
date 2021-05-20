@@ -2,9 +2,9 @@ mod material;
 mod ray;
 mod vec3;
 
-use std::{fs::File, io::Write, path::Path};
+use std::{fs::File, path::Path};
 use std::{io::BufWriter, sync::Arc};
-use std::{thread, time::Instant}; //to flush the print! call after each scanline updates
+use std::{thread, time::Instant};
 
 use png::Encoder;
 use rand::{self, Rng};
@@ -49,16 +49,15 @@ fn main() {
         Instant::now().duration_since(before).as_millis()
     );
 
-    let cloned_renderer = renderer.clone();
     let before = Instant::now();
-    write_buffer_as_png("out_lines.png", &render_threaded_lines(cloned_renderer));
+    write_buffer_as_png("out_lines.png", &render_threaded_lines(renderer));
     println!(
         "Rendering(concurrently) and writing lines as png took {}ms",
         Instant::now().duration_since(before).as_millis()
     );
 }
 
-fn write_buffer_as_png<P: AsRef<Path>>(fname: P, buffer: &Vec<u8>) {
+fn write_buffer_as_png<P: AsRef<Path>>(fname: P, buffer: &[u8]) {
     let mut png_encoder = Encoder::new(
         BufWriter::new(File::create(fname).unwrap()),
         IMAGE_WIDTH as u32,

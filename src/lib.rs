@@ -32,9 +32,9 @@ impl Renderer {
         for _ in 0..self.viewport.samples {
             let u = (x as f64 + rng.gen::<f64>()) / (self.viewport.width - 1) as f64;
             let v = (y as f64 + rng.gen::<f64>()) / (self.viewport.height - 1) as f64;
-            let r = self.camera.get_ray(u, v);
+            let ray = self.camera.get_ray(u, v);
 
-            pixel_colour = pixel_colour + r.colour(&self.world, self.viewport.depth as usize);
+            pixel_colour = pixel_colour + ray.colour(&self.world, self.viewport.depth as usize);
         }
 
         RGBColour::from(pixel_colour / self.viewport.samples as f64)
@@ -64,11 +64,6 @@ impl Renderer {
             component_vec[index * 3] = color.r;
             component_vec[index * 3 + 1] = color.g;
             component_vec[index * 3 + 2] = color.b;
-
-            use std::io::Write;
-
-            print!("\rPixels rendered: {} ", index);
-            std::io::stdout().flush().unwrap();
         }
         println!();
 
