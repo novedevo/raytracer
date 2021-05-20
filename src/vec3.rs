@@ -158,6 +158,12 @@ impl Vec3 {
     fn reflect(self, normal: Self) -> Self {
         self - 2.0 * Self::dot(self, normal) * normal
     }
+    fn refract(self, normal: Self, etai_over_etat: f64) -> Self {
+        let cos_theta = Self::dot(normal, -self).min(1.0);
+        let r_out_perp = etai_over_etat * (self + cos_theta * normal);
+        let r_out_parallel = -(1.0 - r_out_perp.length_squared()).abs().sqrt() * normal;
+        r_out_perp + r_out_parallel
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
@@ -244,14 +250,11 @@ pub struct HitRecord {
     normal: Vec3,
     t: f64,
     material: Material,
+    front_face: bool,
 }
 impl HitRecord {
-    fn normalize(r: Ray, normal: Vec3) -> Vec3 {
-        if Vec3::dot(r.direction, normal) < 0.0 {
-            normal
-        } else {
-            -normal
-        }
+    fn front_face(r: Ray, normal: Vec3) -> bool {
+        Vec3::dot(r.direction, normal) < 0.0
     }
 }
 
@@ -288,11 +291,15 @@ impl Hittable for Sphere {
             }
         }
 
+        let normal = (r.at(root) - self.centre) / self.radius;
+        let front_face = HitRecord::front_face(r, normal);
+
         Some(HitRecord {
             t: root,
             p: r.at(root),
-            normal: HitRecord::normalize(r, (r.at(root) - self.centre) / self.radius),
+            normal: if front_face { normal } else { -normal },
             material: self.material,
+            front_face,
         })
     }
 }
@@ -392,6 +399,7 @@ impl Camera {
 pub enum Material {
     Lambertian(Colour),
     Metal(Colour),
+    Dielectric(f64),
 }
 impl Default for Material {
     fn default() -> Self {
@@ -399,7 +407,7 @@ impl Default for Material {
     }
 }
 
-impl  Material {
+impl Material {
     fn scatter(&self, r_in: Ray, rec: &HitRecord) -> Option<(Colour, Ray)> {
         match self {
             Self::Lambertian(albedo) => {
@@ -422,6 +430,24 @@ impl  Material {
                     false => None,
                     true => Some((*albedo, scattered)),
                 }
+            }
+            Self::Dielectric(ir) => {
+                let refraction_ratio = if rec.front_face { 1.0 / ir } else { *ir };
+
+                let unit_direction = r_in.direction.unit();
+
+                let cos_theta = Vec3::dot(-unit_direction, rec.normal).min(1.0);
+                let sin_theta = (1.0 - cos_theta.powi(2)).sqrt();
+
+                let cannot_refract = refraction_ratio * sin_theta > 1.0;
+
+                let direction = if cannot_refract {
+                    unit_direction.reflect(rec.normal)
+                } else {
+                    unit_direction.refract(rec.normal, refraction_ratio)
+                };
+                
+                Some((Colour::new(1.0, 1.0, 1.0), Ray::new(rec.p, direction)))
             }
         }
     }
