@@ -9,9 +9,15 @@ pub type Colour = Vec3;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
 pub struct RGBColour {
-    r: u8,
-    g: u8,
-    b: u8,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+impl RGBColour {
+    // useful for when type inference won't work ( and you can't turbofish into :( )
+    pub(crate) fn colors(self) -> [u8; 3] {
+        self.into()
+    }
 }
 impl fmt::Display for RGBColour {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -27,8 +33,8 @@ impl From<Vec3> for RGBColour {
         }
     }
 }
-impl From<&RGBColour> for [u8; 3] {
-    fn from(colour: &RGBColour) -> Self {
+impl From<RGBColour> for [u8; 3] {
+    fn from(colour: RGBColour) -> Self {
         [colour.r, colour.g, colour.b]
     }
 }
