@@ -1,4 +1,4 @@
-use std::{fs::File, path::Path};
+use std::{fs::File, io::{Write, stdout}, path::Path};
 use std::{io::BufWriter, sync::Arc};
 use std::{thread, time::Instant};
 
@@ -8,7 +8,7 @@ use raytracer::{worlds::*, Renderer, Viewport};
 
 //Image parameters
 const ASPECT_RATIO: f64 = 16.0/9.0;
-const IMAGE_WIDTH: usize = 1920;
+const IMAGE_WIDTH: usize = 1920/4;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 const SAMPLES_PER_PIXEL: usize = 100;
 const MAX_DEPTH: usize = 50;
@@ -58,7 +58,7 @@ fn render_threaded_lines(renderer: Renderer) -> Vec<u8> {
 
     for thread_num in 0..NUM_THREADS {
         let cloned = arc_renderer.clone();
-        threads.push(thread::spawn(move || render_line(cloned, thread_num)));
+        threads.push(thread::spawn(move || render_lines(cloned, thread_num)));
     }
 
     let mut component_vec = vec![0; IMAGE_WIDTH * IMAGE_HEIGHT * 3];
@@ -72,16 +72,20 @@ fn render_threaded_lines(renderer: Renderer) -> Vec<u8> {
         }
     }
 
+    println!("\rFinished rendering!");
+    //todo: why does this still print the last number?
+
     component_vec
 }
 
-fn render_line(renderer: Arc<Renderer>, thread_num: usize) -> Vec<(Vec<u8>, usize)> {
-    let mut lines = vec![];
+fn render_lines(renderer: Arc<Renderer>, thread_num: usize) -> Vec<(Vec<u8>, usize)> {
+    let mut lines = Vec::with_capacity(IMAGE_HEIGHT / NUM_THREADS);
     for j in (0..IMAGE_HEIGHT).rev() {
         if j % NUM_THREADS != thread_num {
             continue;
         }
-
+        print!("\rNow rendering line: {} ", j);
+        stdout().flush().unwrap();
         lines.push((renderer.line(j), j));
     }
     lines
