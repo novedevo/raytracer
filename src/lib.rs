@@ -1,5 +1,6 @@
 pub mod material;
 pub mod ray;
+pub mod worlds;
 mod vec3;
 
 use material::{Colour, RGBColour};
