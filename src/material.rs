@@ -39,7 +39,7 @@ impl From<RGBColour> for [u8; 3] {
 #[derive(Clone, Copy)]
 pub enum Material {
     Lambertian(Colour), //diffuse, non-reflective, opaque
-    Metal(Colour),      //reflective, opaque
+    Metal(Colour, f64), //reflective, opaque
     Dielectric(f64),    //semi-reflective, transparent, refractory (glass, e.g.)
 }
 impl Default for Material {
@@ -65,11 +65,10 @@ impl Material {
                     ),
                 ))
             }
-            //TODO: "fuzzy" (imperfectly reflective) metals
-            Self::Metal(albedo) => {
+            Self::Metal(albedo, fuzziness) => {
                 let reflected = r_in.direction.reflect(rec.normal).unit();
-                let scattered = Ray::new(rec.p, reflected);
-                //TODO: why do we need this to return an option, why does this check matter
+                let scattered = Ray::new(rec.p, reflected + fuzziness * Vec3::random_unit());
+                //TODO: why do we need this to return an option, why does this check matter? preventing subsurface scattering?
                 match Vec3::dot(scattered.direction, rec.normal) > 0.0 {
                     false => None,
                     true => Some((albedo, scattered)),

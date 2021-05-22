@@ -10,13 +10,13 @@ use raytracer::{worlds::*, Renderer, Viewport};
 const ASPECT_RATIO: f64 = 16.0/9.0;
 const IMAGE_WIDTH: usize = 1920;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 200;
-const MAX_DEPTH: usize = 50;
+const SAMPLES_PER_PIXEL: usize = 500;
+const MAX_DEPTH: usize = 100;
 const NUM_THREADS: usize = 12;
 
 fn main() {
     //Worldgen!
-    let (world, camera) = simple_scene(ASPECT_RATIO);
+    let (world, camera) = complex_random_scene(ASPECT_RATIO);
 
     let viewport = Viewport::new(IMAGE_WIDTH, IMAGE_HEIGHT, SAMPLES_PER_PIXEL, MAX_DEPTH);
 

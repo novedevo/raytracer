@@ -12,8 +12,8 @@ pub fn simple_scene(aspect_ratio: f64) -> (HittableList, Camera) {
     let ground = Material::Lambertian(Colour::new(0.8, 0.8, 0.0));
     let terracotta = Material::Lambertian(Colour::new(0.7, 0.3, 0.3));
     let lapis = Material::Lambertian(Colour::new(0.1, 0.2, 0.5));
-    let silver = Material::Metal(Colour::new(0.8, 0.8, 0.8));
-    let gold = Material::Metal(Colour::new(0.8, 0.6, 0.2));
+    let silver = Material::Metal(Colour::new(0.8, 0.8, 0.8), 0.0);
+    let gold = Material::Metal(Colour::new(0.8, 0.6, 0.2), 0.0);
     let glass = Material::Dielectric(1.5);
 
     world.add(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0, lapis));
@@ -31,7 +31,7 @@ pub fn simple_scene(aspect_ratio: f64) -> (HittableList, Camera) {
         Vec3::new(0.0, 1.0, 0.0),
         20.0,
         aspect_ratio,
-        2.0,
+        0.0,
         (origin - focus).length(),
     );
 
@@ -62,7 +62,7 @@ pub fn complex_random_scene(aspect_ratio: f64) -> (HittableList, Camera) {
                 } else if choose_mat < 0.95 {
                     let albedo = Colour::random_range(0.5, 1.0);
                     //fuzziness
-                    world.add(Sphere::new(centre, 0.2, Material::Metal(albedo)))
+                    world.add(Sphere::new(centre, 0.2, Material::Metal(albedo, rng.gen::<f64>()/2.0)))
                 } else {
                     world.add(Sphere::new(centre, 0.2, Material::Dielectric(1.5)))
                 }
@@ -82,7 +82,7 @@ pub fn complex_random_scene(aspect_ratio: f64) -> (HittableList, Camera) {
     world.add(Sphere::new(
         Point::new(4.0, 1.0, 0.0),
         1.0,
-        Material::Metal(Colour::new(0.7, 0.6, 0.5)),
+        Material::Metal(Colour::new(0.7, 0.6, 0.5), 0.0),
     ));
 
     let camera = Camera::new(
