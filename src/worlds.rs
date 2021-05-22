@@ -11,22 +11,28 @@ pub fn simple_scene(aspect_ratio: f64) -> (HittableList, Camera) {
 
     let ground = Material::Lambertian(Colour::new(0.8, 0.8, 0.0));
     let terracotta = Material::Lambertian(Colour::new(0.7, 0.3, 0.3));
+    let lapis = Material::Lambertian(Colour::new(0.1, 0.2, 0.5));
     let silver = Material::Metal(Colour::new(0.8, 0.8, 0.8));
     let gold = Material::Metal(Colour::new(0.8, 0.6, 0.2));
     let glass = Material::Dielectric(1.5);
 
-    world.add(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0, ground));
+    world.add(Sphere::new(Point::new(0.0, -100.5, -1.0), 100.0, lapis));
     world.add(Sphere::new(Point::new(0.0, 0.0, -1.0), 0.5, terracotta));
     world.add(Sphere::new(Point::new(-1.0, 0.0, -1.0), 0.5, glass));
     world.add(Sphere::new(Point::new(-1.0, 0.0, -1.0), -0.4, glass)); //hollow centre
     world.add(Sphere::new(Point::new(1.0, 0.0, -1.0), 0.5, gold));
 
+    let origin = Point::new(3.0, 3.0, 2.0);
+    let focus = Point::new(0.0, 0.0, -1.0);
+
     let camera = Camera::new(
-        50.0,
-        aspect_ratio,
-        Point::new(-2.0, 2.0, 1.0),
-        Point::new(0.0, 0.0, -1.0),
+        origin,
+        focus,
         Vec3::new(0.0, 1.0, 0.0),
+        20.0,
+        aspect_ratio,
+        2.0,
+        (origin - focus).length(),
     );
 
     (world, camera)
@@ -80,11 +86,13 @@ pub fn complex_random_scene(aspect_ratio: f64) -> (HittableList, Camera) {
     ));
 
     let camera = Camera::new(
-        20.0,
-        aspect_ratio,
         Point::new(13.0, 2.0, 3.0),
         Point::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0),
+        20.0,
+        aspect_ratio,
+        0.1,
+        10.0,
     );
 
     (world, camera)
