@@ -1,4 +1,8 @@
-use std::{fs::File, io::{Write, stdout}, path::Path};
+use std::{
+    fs::File,
+    io::{stdout, Write},
+    path::Path,
+};
 use std::{io::BufWriter, sync::Arc};
 use std::{thread, time::Instant};
 
@@ -7,7 +11,7 @@ use png::Encoder;
 use raytracer::{worlds::*, Renderer, Viewport};
 
 //Image parameters
-const ASPECT_RATIO: f64 = 16.0/9.0;
+const ASPECT_RATIO: f64 = 16.0 / 9.0;
 const IMAGE_WIDTH: usize = 1920;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 const SAMPLES_PER_PIXEL: usize = 500;
@@ -22,14 +26,8 @@ fn main() {
 
     let renderer = Renderer::new(viewport, camera, world);
 
-    // let before = Instant::now();
-    // write_buffer_as_png("out_frame.png", &renderer.frame());
-    // println!(
-    //     "Rendering and writing frame as png took {}ms",
-    //     Instant::now().duration_since(before).as_millis()
-    // );
-
     let before = Instant::now();
+    println!("Please hold. Your render is very important to us...");
     write_buffer_as_png("out_lines.png", &render_threaded_lines(renderer));
     println!(
         "Rendering(concurrently) and writing lines as png took {}ms",
